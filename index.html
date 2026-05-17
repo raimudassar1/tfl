@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>TOCFL Mock Test Centre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0f0f0f; --ink2:#3a3a3a; --ink3:#888;
+  --bg:#F5F3EE; --bg2:#EDEAE2; --bg3:#E2DFD6;
+  --white:#FFFFFF; --accent:#1A3A5C; --accent2:#2D6A9F; --accent-lt:#EBF2FA;
+  --red:#C0392B; --green:#27AE60; --border:rgba(0,0,0,0.09); --border2:rgba(0,0,0,0.16);
+  --radius:12px; --shadow:0 2px 12px rgba(0,0,0,0.08); --shadow-md:0 6px 30px rgba(0,0,0,0.12);
+  --sans:'Syne',system-ui,sans-serif; --body:'Noto Sans TC',sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--body);-webkit-text-size-adjust:100%;touch-action:none;}
+#app{display:flex;flex-direction:column;height:100%;overflow:hidden;contain:content;}
+
+/* ─── COMPACT TOP NAV ─── */
+#top-nav{
+  height:44px;display:flex;align-items:center;padding:0 8px;gap:8px;
+  background:var(--accent);color:#fff;flex-shrink:0;position:relative;z-index:200;
+  box-shadow:var(--shadow); transform:translateZ(0);
+}
+.nav-logo{font-family:var(--sans);font-size:13px;font-weight:800;color:#fff;flex-shrink:0;}
+.nav-spacer{flex:1;}
+
+.nav-test-selector{display:flex;align-items:center;background:rgba(255,255,255,0.12);border-radius:6px;padding:1px 4px;}
+#test-select{font-family:var(--body);font-size:11px;background:transparent;border:none;color:#fff;cursor:pointer;outline:none;min-width:80px;font-weight:600;}
+#test-select option{background:#1A3A5C;color:#fff;}
+
+.nav-panel-switcher{display:flex;gap:3px;}
+.nav-tab-btn{background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.7);padding:4px 10px;font-family:var(--sans);font-size:10px;font-weight:700;cursor:pointer;border-radius:5px;transition:all 0.2s;display:flex;align-items:center;gap:4px;}
+.nav-tab-btn.active{background:#fff;color:var(--accent);}
+
+.nav-tool-btn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:6px;padding:4px 8px;font-family:var(--sans);font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;}
+.nav-tool-btn.active{background:var(--green);border-color:var(--green);}
+.nav-tool-btn.red-active.active{background:var(--red);border-color:var(--red);}
+
+/* Audio in Nav (Focus Mode) */
+#nav-audio-controls{display:none;align-items:center;gap:6px;background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:6px;}
+#nav-audio-track{font-size:10px;background:transparent;border:none;color:#fff;max-width:100px;outline:none;}
+.nav-play-btn{background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:0 4px;}
+
+/* ─── MAIN PANELS ─── */
+#main-area{flex:1;display:grid;grid-template-columns:1fr;grid-template-rows:1fr;overflow:hidden;}
+.side-panel{grid-area:1/1/2/2;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);visibility:hidden;pointer-events:none;}
+.side-panel.active{visibility:visible;pointer-events:all;z-index:10;}
+
+.panel-header{display:flex;align-items:center;gap:10px;padding:0 12px;height:40px;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;}
+.panel-title{font-family:var(--sans);font-size:12px;font-weight:800;color:var(--accent);text-transform:uppercase;}
+.ph-spacer{flex:1;}
+.panel-ctrl-btn{background:var(--bg2);border:1px solid var(--border2);color:var(--ink2);border-radius:6px;padding:4px 8px;font-family:var(--sans);font-size:10px;font-weight:700;cursor:pointer;}
+
+/* ─── PDF VIEWER ─── */
+.pdf-area{
+  flex:1;overflow:auto;background:var(--bg3);display:flex;flex-direction:column;
+  align-items:center;gap:12px;padding:12px 8px;-webkit-overflow-scrolling:touch;
+  touch-action:pan-x pan-y; will-change:scroll-position; contain:size layout;
+}
+.pdf-page-wrap{
+  position:relative;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,0.1);
+  flex-shrink:0;min-height:300px; contain:strict; margin-bottom:4px;
+}
+.page-canvas{display:block;max-width:100%; height:auto;}
+.annot-canvas{position:absolute;inset:0;touch-action:none;pointer-events:none;width:100%;height:100%;}
+.pdf-page-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg2);color:var(--ink3);font-size:11px;font-weight:600;}
+
+/* ─── TOOLBARS ─── */
+.audio-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--accent-lt);border-bottom:1px solid rgba(26,58,92,0.1);flex-shrink:0;}
+.annot-toolbar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;}
+.color-dot{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:0.1s;}
+.color-dot.active{border-color:var(--ink);transform:scale(1.15);}
+.size-btn{font-size:10px;font-weight:800;padding:4px 6px;border-radius:5px;cursor:pointer;border:1px solid var(--border2);background:var(--bg2);}
+.size-btn.active{background:var(--accent);color:#fff;}
+
+.doc-tabs{display:flex;gap:4px;padding:6px 12px 0;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.doc-tab{padding:5px 10px;font-family:var(--sans);font-size:10px;font-weight:700;color:var(--ink3);background:rgba(0,0,0,0.03);border:none;cursor:pointer;border-radius:5px 5px 0 0;}
+.doc-tab.active{color:var(--accent);background:var(--white);}
+
+/* ─── FOCUS MODE ─── */
+body.focus-mode .nav-logo, body.focus-mode .nav-test-selector, body.focus-mode .panel-header, body.focus-mode .audio-bar, body.focus-mode .doc-tabs {display:none;}
+body.focus-mode #top-nav {justify-content:center; gap:8px;}
+body.focus-mode #nav-audio-controls {display:flex;}
+body.focus-mode .pdf-area {padding:0;}
+
+/* Pen Mode */
+body.pen-mode-active .pdf-area {overflow:hidden !important; touch-action:none;}
+body.pen-mode-active .annot-canvas {pointer-events:all !important;}
+
+#focus-toggle{position:fixed;bottom:15px;right:15px;z-index:500;width:40px;height:44px;border-radius:20px;background:var(--accent);color:#fff;border:none;font-size:18px;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;}
+body.focus-mode #focus-toggle{background:var(--red);}
+#toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--ink);color:#fff;padding:6px 16px;border-radius:15px;font-size:11px;z-index:999;transition:0.3s;pointer-events:none;}
+#toast.show{transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="top-nav">
+    <div class="nav-logo">TOCFL</div>
+    <div class="nav-spacer"></div>
+    <div class="nav-test-selector">
+      <select id="test-select" onchange="onTestChange()">
+        <option value="novice">Novice</option>
+        <option value="mock1" selected>Mock 1</option>
+        <option value="mock2">Mock 2</option>
+        <option value="mock3">Mock 3</option>
+        <option value="mock4">Mock 4</option>
+        <option value="mock5">Mock 5</option>
+      </select>
+    </div>
+    <div class="nav-panel-switcher">
+      <button class="nav-tab-btn active" id="ptab-listen" onclick="switchPanel('listen')">🎧 Listen</button>
+      <button class="nav-tab-btn" id="ptab-read" onclick="switchPanel('read')">📖 Read</button>
+    </div>
+    <div id="nav-audio-controls">
+       <button class="nav-play-btn" onclick="togglePlay()" id="nav-play-pause">▶</button>
+       <select id="nav-audio-track" onchange="onTrackSelect(this.value)"></select>
+    </div>
+    <div class="nav-spacer"></div>
+    <button class="nav-tool-btn" onclick="toggleQuality()" id="quality-btn" title="Toggle Quality (Eco/High)">HD</button>
+    <button class="nav-tool-btn" onclick="togglePenMode()" id="pen-mode-btn">✏️ Pen</button>
+    <button class="nav-tool-btn red-active" onclick="toggleFocus()" id="focus-nav-btn">⛶ Focus</button>
+  </div>
+
+  <div id="main-area">
+    <div class="side-panel active" id="listen-panel">
+      <div class="panel-header">
+        <div class="panel-title">Listening</div>
+        <div class="ph-spacer"></div>
+        <button class="panel-ctrl-btn" onclick="clearAnnot('listen')">✕ Clear</button>
+      </div>
+      <div class="audio-bar">
+        <select id="audio-track-select" onchange="onTrackSelect(this.value)" style="flex:1;font-size:11px;padding:4px;"></select>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <audio id="audio-player" preload="none" ontimeupdate="updateProgress()" onended="audioEnded()" onloadedmetadata="updateDuration()"></audio>
+          <button class="play-pause-btn" id="play-pause-btn" onclick="togglePlay()" style="width:30px;height:30px;border-radius:50%;border:none;background:var(--accent);color:#fff;">▶</button>
+          <span id="audio-time" style="font-size:10px;width:60px;">0:00 / 0:00</span>
+          <input type="range" id="audio-progress" min="0" max="100" value="0" step="0.1" oninput="seekAudio(this.value)" style="width:60px;">
+          <button class="size-btn" onclick="cycleSpeed()" id="speed-btn">1×</button>
+        </div>
+      </div>
+      <div class="doc-tabs" id="listen-tabs">
+        <button class="doc-tab active" onclick="switchListenDoc('test')" id="ltab-test">Test</button>
+        <button class="doc-tab" onclick="switchListenDoc('script')" id="ltab-script">Script</button>
+        <button class="doc-tab" onclick="switchListenDoc('answer')" id="ltab-answer">Key</button>
+      </div>
+      <div class="annot-toolbar" id="listen-annot-bar">
+        <div class="color-dot active" style="background:#1A3A5C" data-c="blue" onclick="setAnnotColor('listen','blue')"></div>
+        <div class="color-dot" style="background:#C0392B" data-c="red" onclick="setAnnotColor('listen','red')"></div>
+        <div class="color-dot" style="background:#27AE60" data-c="green" onclick="setAnnotColor('listen','green')"></div>
+        <button class="size-btn active" data-sz="S" onclick="setAnnotSize('listen','S')">S</button>
+        <button class="size-btn" data-sz="M" onclick="setAnnotSize('listen','M')">M</button>
+        <button class="panel-ctrl-btn" onclick="setAnnotTool('listen','eraser')">◻ Eraser</button>
+      </div>
+      <div class="pdf-area" id="listen-pdf-area"></div>
+    </div>
+
+    <div class="side-panel" id="read-panel">
+      <div class="panel-header">
+        <div class="panel-title">Reading</div>
+        <div class="ph-spacer"></div>
+        <button class="panel-ctrl-btn" onclick="clearAnnot('read')">✕ Clear</button>
+      </div>
+      <div class="doc-tabs" id="read-tabs">
+        <button class="doc-tab active" onclick="switchReadDoc('test')" id="rtab-test">Test</button>
+        <button class="doc-tab" onclick="switchReadDoc('answer')" id="rtab-answer">Key</button>
+      </div>
+      <div class="annot-toolbar" id="read-annot-bar">
+        <div class="color-dot active" style="background:#C0392B" data-c="red" onclick="setAnnotColor('read','red')"></div>
+        <div class="color-dot" style="background:#1A3A5C" data-c="blue" onclick="setAnnotColor('read','blue')"></div>
+        <div class="color-dot" style="background:#27AE60" data-c="green" onclick="setAnnotColor('read','green')"></div>
+        <button class="size-btn active" data-sz="S" onclick="setAnnotSize('read','S')">S</button>
+        <button class="size-btn" data-sz="M" onclick="setAnnotSize('read','M')">M</button>
+        <button class="panel-ctrl-btn" onclick="setAnnotTool('read','eraser')">◻ Eraser</button>
+      </div>
+      <div class="pdf-area" id="read-pdf-area"></div>
+    </div>
+  </div>
+</div>
+
+<button id="focus-toggle" onclick="toggleFocus()" title="Toggle focus mode">⛶</button>
+<div id="toast"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+const TESTS = {
+  novice: { label: 'Novice', listen: { test: 'data/ls_mock_test_Novice_en_201811_t.pdf', script: 'data/ls_mock_test_Novice_listen.pdf', answer: 'data/mock_test_Novice_answer.pdf' }, read: { test: 'data/rd_mock_test_Novice_en_201811_t.pdf', answer: null }, audioFolder: 'data/mock_Novice_mp3_en', audioTracks: buildNoviceTracks() },
+  mock1: { label: 'Mock 1', listen: { test: 'data/ls_mock_test_BandA_en_t.pdf', script: 'data/ls_mock_test_BandA_listen.pdf', answer: null }, read: { test: 'data/rd_mock_test_BandA_en_t.pdf', answer: 'data/rd_mock_test_BandA_answer.pdf' }, audioFolder: 'data/mock_BandA_mp3_en/mock_BandA_mp3_en', audioTracks: buildBandATracks('mock_BandA') },
+  mock2: { label: 'Mock 2', listen: { test: 'data/ls_mock2_test_BandA_en_t.pdf', script: 'data/ls_mock2_test_BandA_listen.pdf', answer: 'data/ls_mock2_test_BandA_answer.pdf' }, read: { test: 'data/rd_mock2_test_BandA_en_t.pdf', answer: 'data/rd_mock2_test_BandA_answer.pdf' }, audioFolder: 'data/mock2_BandA_mp3_en/mock2_BandA_mp3_en', audioTracks: buildBandATracks('mock2_BandA') },
+  mock3: { label: 'Mock 3', listen: { test: 'data/ls_mock3_test_BandA_en_t.pdf', script: 'data/ls_mock3_test_BandA_listen.pdf', answer: 'data/ls_mock3_test_BandA_answer.pdf' }, read: { test: 'data/rd_mock3_test_BandA_en_t.pdf', answer: 'data/rd_mock3_test_BandA_answer.pdf' }, audioFolder: 'data/mock3_BandA_mp3_en/mock3_BandA_mp3_en/mock3_BandA_mp3_en', audioTracks: buildBandATracks('mock3_BandA') },
+  mock4: { label: 'Mock 4', listen: { test: 'data/ls_mock4_test_BandA_en_t.pdf', script: 'data/ls_mock4_test_BandA_listen.pdf', answer: 'data/ls_mock4_test_BandA_answer.pdf' }, read: { test: 'data/rd_mock4_test_BandA_en_t.pdf', answer: 'data/rd_mock4_test_BandA_answer.pdf' }, audioFolder: 'data/mock4_BandA_mp3_en/mock4_BandA_mp3_en', audioTracks: buildBandATracks('mock4_BandA') },
+  mock5: { label: 'Mock 5', listen: { test: 'data/ls_mock5_test_BandA_en_t.pdf', script: 'data/ls_mock5_test_BandA_listen.pdf', answer: 'data/ls_mock5_test_BandA_answer.pdf' }, read: { test: 'data/rd_mock5_test_BandA_en_t.pdf', answer: 'data/rd_mock5_test_BandA_answer.pdf' }, audioFolder: 'data/mock5_BandA_mp3_en/mock5_BandA_mp3_en', audioTracks: buildBandATracks('mock5_BandA') }
+};
+
+function buildNoviceTracks() {
+  const t = [{v:'', l:'— track —'}, {v:'001.mp3', l:'Instr.'}];
+  for(let i=2;i<=11;i++) t.push({v:`${String(i).padStart(3,'0')}.mp3`, l:`Q${i-1}`});
+  t.push({v:'012.mp3', l:'PII Intro'});
+  for(let i=13;i<=22;i++) t.push({v:`${String(i).padStart(3,'0')}.mp3`, l:`Q${i-2}`});
+  return t;
+}
+function buildBandATracks(k) {
+  const t = [{v:'0-1.mp3', l:'Instr.'}];
+  let p = (k==='mock_BandA'||k==='mock2_BandA') ? [{pr:'1',s:1,e:25},{pr:'2',s:26,e:40},{pr:'3',s:41,e:45},{pr:'4',s:46,e:50}] : (k==='mock5_BandA' ? [{pr:'1',s:1,e:10},{pr:'2',s:11,e:28},{pr:'3',s:29,e:40},{pr:'4',s:41,e:50}] : [{pr:'1',s:1,e:10},{pr:'2',s:11,e:25},{pr:'3',s:26,e:40},{pr:'4',s:41,e:50}]);
+  p.forEach(x=>{ for(let i=x.s;i<=x.e;i++) t.push({v:`${x.pr}-${String(i).padStart(2,'0')}.mp3`, l:`Q${i}`}); });
+  return t;
+}
+
+let curT = 'mock1', activeP = 'listen', penMode = false, quality = 1.0;
+const pdfS = {
+  listen: { pdf: null, zoom: 1.0, strokes: {}, tool: 'pen', color: 'blue', size: 'S', renderedW: 0, observer: null },
+  read:   { pdf: null, zoom: 1.0, strokes: {}, tool: 'pen', color: 'red',  size: 'S', renderedW: 0, observer: null },
+};
+const COLORS = { blue:'#1A3A5C', red:'#C0392B', green:'#27AE60' }, SIZES = { S:2.5, M:5, L:10 };
+let speeds = [0.75, 1, 1.25, 1.5], speedIdx = 1;
+
+window.addEventListener('DOMContentLoaded', () => { loadTest('mock1'); });
+
+function toggleQuality() {
+  quality = quality === 1.0 ? 1.8 : 1.0;
+  document.getElementById('quality-btn').textContent = quality > 1 ? 'HD ON' : 'HD OFF';
+  document.getElementById('quality-btn').classList.toggle('active', quality > 1);
+  renderAllPages(activeP);
+  showToast(quality > 1 ? 'High Quality Enabled' : 'Eco Mode Enabled');
+}
+
+function switchPanel(p) {
+  activeP = p;
+  document.querySelectorAll('.nav-tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('ptab-'+p).classList.add('active');
+  document.getElementById('listen-panel').classList.toggle('active', p === 'listen');
+  document.getElementById('read-panel').classList.toggle('active', p === 'read');
+  const s = pdfS[p], area = document.getElementById(`${p}-pdf-area`);
+  if (s.pdf && (s.renderedW !== area.clientWidth)) renderAllPages(p);
+}
+
+function togglePenMode() {
+  penMode = !penMode;
+  document.body.classList.toggle('pen-mode-active', penMode);
+  document.getElementById('pen-mode-btn').classList.toggle('active', penMode);
+  showToast(penMode ? 'Pen Locked' : 'Scroll Mode');
+}
+
+function onTestChange() { loadTest(document.getElementById('test-select').value); }
+function loadTest(k) {
+  curT = k; const t = TESTS[k];
+  pdfS.listen.renderedW = 0; pdfS.read.renderedW = 0;
+  pdfS.listen.strokes = {}; pdfS.read.strokes = {};
+  document.getElementById('ltab-answer').style.display = t.listen.answer ? '' : 'none';
+  document.getElementById('rtab-answer').style.display = t.read.answer ? '' : 'none';
+  
+  [document.getElementById('audio-track-select'), document.getElementById('nav-audio-track')].forEach(sel => {
+    sel.innerHTML = '<option value="">— track —</option>';
+    t.audioTracks.forEach(tr => { const o = document.createElement('option'); o.value = tr.v ? `${t.audioFolder}/${tr.v}` : ''; o.textContent = tr.l; sel.appendChild(o); });
+  });
+
+  const ap = document.getElementById('audio-player'); ap.pause(); ap.src='';
+  document.getElementById('play-pause-btn').textContent = document.getElementById('nav-play-pause').textContent = '▶';
+  loadPDF('listen', t.listen.test); loadPDF('read', t.read.test);
+}
+
+function onTrackSelect(v) { if (!v) return; const ap = document.getElementById('audio-player'); ap.src = v; ap.load(); ap.play().then(() => document.getElementById('play-pause-btn').textContent = document.getElementById('nav-play-pause').textContent = '⏸'); [document.getElementById('audio-track-select'), document.getElementById('nav-audio-track')].forEach(s => s.value = v); }
+function togglePlay() { const ap = document.getElementById('audio-player'), b1 = document.getElementById('play-pause-btn'), b2 = document.getElementById('nav-play-pause'); if (!ap.src) return; if (ap.paused) ap.play().then(()=>{b1.textContent=b2.textContent='⏸'}); else { ap.pause(); b1.textContent=b2.textContent='▶'; } }
+function updateProgress() { const ap = document.getElementById('audio-player'); if (!ap.duration) return; document.getElementById('audio-progress').value = (ap.currentTime / ap.duration) * 100; document.getElementById('audio-time').textContent = `${fmtTime(ap.currentTime)} / ${fmtTime(ap.duration)}`; }
+function updateDuration() { document.getElementById('audio-time').textContent = `0:00 / ${fmtTime(document.getElementById('audio-player').duration)}`; }
+function seekAudio(v) { const ap = document.getElementById('audio-player'); if (ap.duration) ap.currentTime = (v / 100) * ap.duration; }
+function audioEnded() { document.getElementById('play-pause-btn').textContent = document.getElementById('nav-play-pause').textContent = '▶'; }
+function cycleSpeed() { speedIdx = (speedIdx + 1) % speeds.length; const s = speeds[speedIdx]; document.getElementById('audio-player').playbackRate = s; document.getElementById('speed-btn').textContent = s + '×'; }
+function fmtTime(s) { if (!s || isNaN(s)) return '0:00'; const m = Math.floor(s/60), sec = Math.floor(s%60); return `${m}:${String(sec).padStart(2,'0')}`; }
+
+function setActiveTab(p, d) { document.querySelectorAll(`#${p}-tabs .doc-tab`).forEach(b=>b.classList.remove('active')); const el = document.getElementById((p==='listen'?'l':'r')+'tab-'+d); if (el) el.classList.add('active'); }
+function switchListenDoc(d) { setActiveTab('listen', d); const p = TESTS[curT].listen[d]; if (p) loadPDF('listen', p); }
+function switchReadDoc(d) { setActiveTab('read', d); const p = TESTS[curT].read[d]; if (p) loadPDF('read', p); }
+
+async function loadPDF(p, path) {
+  const s = pdfS[p]; s.pdf = null;
+  const area = document.getElementById(`${p}-pdf-area`); area.innerHTML = '<div style="color:var(--ink3);font-size:12px;padding:40px;">Loading...</div>';
+  try { s.pdf = await pdfjsLib.getDocument(path).promise; renderAllPages(p); } catch(e) { area.innerHTML = 'Error loading PDF'; }
+}
+
+function getAnnotPt(e, c) {
+  const r = c.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return { x: (touch.clientX - r.left) * (c.width / r.width / ANNOT_DPI), y: (touch.clientY - r.top) * (c.height / r.height / ANNOT_DPI) };
+}
+
+function setAnnotColor(p, c) { pdfS[p].color = c; pdfS[p].tool = 'pen'; updateAnnotUI(p); }
+function setAnnotSize(p, sz) { pdfS[p].size = sz; updateAnnotUI(p); }
+function setAnnotTool(p, t) { pdfS[p].tool = t; updateAnnotUI(p); }
+function updateAnnotUI(p) {
+  const bar = document.getElementById(`${p}-annot-bar`), s = pdfS[p];
+  bar.querySelectorAll('.color-dot').forEach(d => d.classList.toggle('active', d.dataset.c === s.color));
+  bar.querySelectorAll('.size-btn').forEach(b => b.classList.toggle('active', b.dataset.sz === s.size));
+}
+function clearAnnot(p) { if (confirm('Clear?')) { pdfS[p].strokes = {}; renderAllPages(p); } }
+
+const ANNOT_DPI = 2;
+function attachAnnotEvents(c, p, n) {
+  let drawing = false, last = {x:0,y:0}, curS = null;
+  const start = e => {
+    if (!penMode) return;
+    if (e.touches && e.touches.length > 1) return;
+    e.preventDefault(); drawing = true;
+    const pt = getAnnotPt(e, c); last = pt;
+    if (!pdfS[p].strokes[n]) pdfS[p].strokes[n] = [];
+    curS = { tool: pdfS[p].tool, color: pdfS[p].color, size: pdfS[p].size, points: [pt] };
+  };
+  const move = e => {
+    if (!drawing || !penMode) return;
+    const pt = getAnnotPt(e, c), ctx = c.getContext('2d'), s = pdfS[p];
+    ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+    if(s.tool==='eraser'){ ctx.globalCompositeOperation='destination-out'; ctx.lineWidth=SIZES[s.size]*6; ctx.strokeStyle='rgba(0,0,0,1)'; }
+    else { ctx.globalCompositeOperation='source-over'; ctx.strokeStyle=COLORS[s.color]; ctx.lineWidth=SIZES[s.size]; }
+    ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(pt.x,pt.y); ctx.stroke(); ctx.restore();
+    last = pt; curS.points.push(pt);
+  };
+  const end = () => { if (!drawing) return; drawing = false; if(curS && curS.points.length>=2) pdfS[p].strokes[n].push(curS); curS = null; };
+  c.addEventListener('mousedown', start); c.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
+  c.addEventListener('touchstart', start, {passive:false}); c.addEventListener('touchmove', move, {passive:false}); c.addEventListener('touchend', end);
+}
+
+async function renderAllPages(p) {
+  const s = pdfS[p]; if (!s.pdf) return;
+  const area = document.getElementById(`${p}-pdf-area`); if (area.clientWidth === 0) return;
+  s.renderedW = area.clientWidth; area.innerHTML = '';
+  const containerW = area.clientWidth - 20;
+
+  if (s.observer) s.observer.disconnect();
+  s.observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const n = parseInt(entry.target.dataset.n);
+      if (entry.isIntersecting) renderPage(p, n, entry.target);
+      else unloadPage(entry.target);
+    });
+  }, { root: area, rootMargin: '600px 0px' });
+
+  for (let n = 1; n <= s.pdf.numPages; n++) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'pdf-page-wrap'; wrapper.dataset.n = n;
+    area.appendChild(wrapper);
+    const page = await s.pdf.getPage(n), baseVp = page.getViewport({scale:1}), scale = containerW / baseVp.width, vp = page.getViewport({scale});
+    wrapper.style.width = vp.width + 'px'; wrapper.style.height = vp.height + 'px';
+    wrapper.innerHTML = `<div class="pdf-page-loading">Page ${n}</div>`;
+    s.observer.observe(wrapper);
+  }
+}
+
+function unloadPage(w) { const cvs = w.querySelectorAll('canvas'); cvs.forEach(c => { c.width = 1; c.height = 1; }); w.innerHTML = `<div class="pdf-page-loading">Page ${w.dataset.n}</div>`; }
+
+async function renderPage(p, n, wrapper) {
+  if (wrapper.querySelector('.page-canvas')) return;
+  const s = pdfS[p]; if(!s.pdf) return;
+  const page = await s.pdf.getPage(n), baseVp = page.getViewport({scale:1}), scale = wrapper.clientWidth / baseVp.width, vp = page.getViewport({scale});
+  wrapper.innerHTML = '';
+  const cvs = document.createElement('canvas'); cvs.className = 'page-canvas'; wrapper.appendChild(cvs);
+  const dpr = quality; cvs.width = vp.width * dpr; cvs.height = vp.height * dpr; cvs.style.width = vp.width + 'px'; cvs.style.height = vp.height + 'px';
+  const ctx = cvs.getContext('2d', { alpha: false }); ctx.scale(dpr, dpr);
+  await page.render({canvasContext: ctx, viewport: vp}).promise;
+  const ann = document.createElement('canvas'); ann.className = 'annot-canvas'; wrapper.appendChild(ann);
+  ann.width = vp.width * ANNOT_DPI; ann.height = vp.height * ANNOT_DPI;
+  const actx = ann.getContext('2d'); actx.scale(ANNOT_DPI, ANNOT_DPI);
+  const strokes = s.strokes[n]; if (strokes) strokes.forEach(st => {
+    actx.save(); actx.lineCap = 'round'; actx.lineJoin = 'round';
+    if (st.tool === 'eraser') { actx.globalCompositeOperation = 'destination-out'; actx.lineWidth = SIZES[st.size] * 6; actx.strokeStyle = 'rgba(0,0,0,1)'; }
+    else { actx.globalCompositeOperation = 'source-over'; actx.strokeStyle = COLORS[st.color]; actx.lineWidth = SIZES[st.size]; }
+    actx.beginPath(); actx.moveTo(st.points[0].x, st.points[0].y); for(let i=1;i<st.points.length;i++) actx.lineTo(st.points[i].x, st.points[i].y); actx.stroke(); actx.restore();
+  });
+  attachAnnotEvents(ann, p, n);
+  if(penMode) ann.style.pointerEvents = 'all';
+}
+
+let focusMode = false;
+function toggleFocus() { focusMode = !focusMode; document.body.classList.toggle('focus-mode', focusMode); document.getElementById('focus-toggle').textContent = focusMode ? '✕' : '⛶'; document.getElementById('focus-nav-btn').classList.toggle('active', focusMode); renderAllPages(activeP); }
+function showToast(m) { const e = document.getElementById('toast'); e.textContent = m; e.classList.add('show'); setTimeout(() => e.classList.remove('show'), 2000); }
+window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => renderAllPages(activeP), 400); });
+let rt;
+</script>
+</body>
+</html>
